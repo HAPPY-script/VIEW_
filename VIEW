@@ -1,0 +1,214 @@
+-- Khởi tạo các service và người chơi
+local player = game.Players.LocalPlayer
+local userInputService = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+local players = game:GetService("Players")
+
+-- Giao diện GUI
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+
+-- Menu Key
+local keyFrame = Instance.new("Frame", gui)
+keyFrame.Size = UDim2.new(0, 300, 0, 150)
+keyFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+keyFrame.BackgroundColor3 = Color3.new(1, 1, 1)
+
+local keyBox = Instance.new("TextBox", keyFrame)
+keyBox.Size = UDim2.new(1, 0, 0.5, 0)
+keyBox.Position = UDim2.new(0, 0, 0, 0)
+keyBox.PlaceholderText = "Nhập Key"
+keyBox.TextScaled = true
+
+local submitButton = Instance.new("TextButton", keyFrame)
+submitButton.Size = UDim2.new(1, 0, 0.5, 0)
+submitButton.Position = UDim2.new(0, 0, 0.5, 0)
+submitButton.Text = "Xác Nhận"
+submitButton.BackgroundColor3 = Color3.new(0, 0.78, 0)
+submitButton.TextColor3 = Color3.new(1, 1, 1)
+
+-- Menu Chính
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.new(0.8, 0.8, 0.8)
+mainFrame.Visible = false
+
+-- Nút Xóa
+local deleteButton = Instance.new("TextButton", mainFrame)
+deleteButton.Size = UDim2.new(0, 25, 0, 25)
+deleteButton.Position = UDim2.new(1, -30, 0, 5)
+deleteButton.Text = "X"
+deleteButton.TextScaled = true
+deleteButton.BackgroundColor3 = Color3.new(1, 0, 0)
+deleteButton.TextColor3 = Color3.new(1, 1, 1)
+
+-- Nút Hiện/Ẩn
+local toggleButton = Instance.new("TextButton", mainFrame)
+toggleButton.Size = UDim2.new(0, 25, 0, 25)
+toggleButton.Position = UDim2.new(1, -60, 0, 5)
+toggleButton.Text = "-"
+toggleButton.TextScaled = true
+toggleButton.BackgroundColor3 = Color3.new(0.7, 0.7, 0.7)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+
+-- Nút mở lại Menu
+local openButton = Instance.new("TextButton", gui)
+openButton.Size = UDim2.new(0, 100, 0, 50)
+openButton.Position = UDim2.new(0.5, -50, 0.5, -25)
+openButton.Text = "Mở Menu"
+openButton.Visible = false
+openButton.BackgroundColor3 = Color3.new(0.5, 0.5, 0.5)
+
+-- Thanh chọn người chơi
+local playerInput = Instance.new("TextBox", mainFrame)
+playerInput.Size = UDim2.new(0, 150, 0, 30)
+playerInput.Position = UDim2.new(0, 10, 1, -50)
+playerInput.PlaceholderText = "Nhập tên"
+playerInput.TextScaled = true
+
+-- Nút View
+local viewButton = Instance.new("TextButton", mainFrame)
+viewButton.Size = UDim2.new(0, 60, 0, 30)
+viewButton.Position = UDim2.new(0, 170, 1, -50)
+viewButton.Text = "View"
+viewButton.TextScaled = true
+viewButton.BackgroundColor3 = Color3.new(0.5, 0.5, 0.5)
+
+-- Thông tin người chơi (dịch lên phía trên)
+local infoLabel = Instance.new("TextLabel", mainFrame)
+infoLabel.Size = UDim2.new(1, 0, 0.4, 0)
+infoLabel.Position = UDim2.new(0, 0, 0.25, 0) -- Dịch lên một chút
+infoLabel.TextScaled = true
+infoLabel.TextColor3 = Color3.new(0, 0, 0)
+infoLabel.BackgroundTransparency = 1
+
+-- Tự động kiểm tra người chơi liên tục
+local function checkPlayer()
+    local enteredText = playerInput.Text:lower()
+    if #enteredText >= 3 then -- Điều kiện nhập từ 3 chữ cái đến full tên
+        for _, p in pairs(players:GetPlayers()) do
+            if p.Name:lower():sub(1, #enteredText) == enteredText then
+                local distance = (p.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).magnitude
+                infoLabel.Text = "Tên: " .. p.Name .. "\nKhoảng cách: " .. math.floor(distance) .. "m\nMáu: " .. math.floor(p.Character.Humanoid.Health / p.Character.Humanoid.MaxHealth * 100) .. "%"
+            end
+        end
+    end
+end
+
+-- Kiểm tra liên tục bằng RunService
+runService.RenderStepped:Connect(function()
+    checkPlayer()
+end)
+
+-- Xử lý nút View
+local viewing = false
+viewButton.MouseButton1Click:Connect(function()
+    local enteredText = playerInput.Text:lower()
+    if #enteredText >= 3 then
+        for _, p in pairs(players:GetPlayers()) do
+            if p.Name:lower():sub(1, #enteredText) == enteredText then
+                if viewing then
+                    workspace.CurrentCamera.CameraSubject = player.Character.Humanoid
+                    viewing = false
+                else
+                    workspace.CurrentCamera.CameraSubject = p.Character.Humanoid
+                    viewing = true
+                end
+            end
+        end
+    end
+end)
+
+-- Xử lý nút Xóa
+deleteButton.MouseButton1Click:Connect(function()
+    mainFrame:Destroy()
+end)
+
+-- Xử lý nút Hiện/Ẩn
+toggleButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    openButton.Visible = true
+end)
+
+openButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    openButton.Visible = false
+end)
+
+-- Kéo thả menu chính
+local dragging, dragInput, dragStart, startPos
+
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+userInputService.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        updateInput(input)
+    end
+end)
+
+-- Kéo thả nút mở menu
+local draggingOpenButton, dragInputOpenButton, dragStartOpenButton, startPosOpenButton
+
+local function updateInputOpenButton(input)
+    local delta = input.Position - dragStartOpenButton
+    openButton.Position = UDim2.new(startPosOpenButton.X.Scale, startPosOpenButton.X.Offset + delta.X, startPosOpenButton.Y.Scale, startPosOpenButton.Y.Offset + delta.Y)
+end
+
+openButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingOpenButton = true
+        dragStartOpenButton = input.Position
+        startPosOpenButton = openButton.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                draggingOpenButton = false
+            end
+        end)
+    end
+end)
+
+openButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInputOpenButton = input
+    end
+end)
+
+userInputService.InputChanged:Connect(function(input)
+    if draggingOpenButton and input == dragInputOpenButton then
+        updateInputOpenButton(input)
+    end
+end)
+
+-- Xử lý nhập key để mở menu chính
+submitButton.MouseButton1Click:Connect(function()
+    if keyBox.Text == "HAPPY_FAMILY" then
+        keyFrame.Visible = false
+        mainFrame.Visible = true
+    else
+        keyBox.Text = "Sai Key!"
+    end
+end)
